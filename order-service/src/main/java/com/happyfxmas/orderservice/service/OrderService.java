@@ -24,7 +24,7 @@ public class OrderService {
     private final WebClient.Builder webClientBuilder;
 
     @Transactional
-    public void placeOrder(OrderRequest orderRequest) {
+    public String placeOrder(OrderRequest orderRequest) {
         Order order = new Order();
         order.setOrderNumber(UUID.randomUUID().toString());
         List<OrderLineItems> orderLineItems = orderRequest.getOrderLineItemsDTOList().stream()
@@ -46,6 +46,7 @@ public class OrderService {
                 .allMatch(InventoryResponse::isInStock);
         if (allProductsInStock) {
             orderRepo.save(order);
+            return "Order placed successfully";
         } else {
             throw new IllegalArgumentException("Products are not in stock, please try again later!");
         }
