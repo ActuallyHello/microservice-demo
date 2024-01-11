@@ -5,8 +5,10 @@ import com.happyfxmas.orderservice.domain.OrderLineItems;
 import com.happyfxmas.orderservice.dto.InventoryResponse;
 import com.happyfxmas.orderservice.dto.OrderLineItemsDTO;
 import com.happyfxmas.orderservice.dto.OrderRequest;
+import com.happyfxmas.orderservice.event.OrderPlacedEvent;
 import com.happyfxmas.orderservice.repo.OrderRepo;
 import lombok.RequiredArgsConstructor;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -22,6 +24,7 @@ public class OrderService {
 
     private final OrderRepo orderRepo;
     private final WebClient.Builder webClientBuilder;
+    private final KafkaTemplate<String, OrderPlacedEvent> kafkaTemplate;
 
     @Transactional
     public String placeOrder(OrderRequest orderRequest) {
@@ -46,6 +49,7 @@ public class OrderService {
                 .allMatch(InventoryResponse::isInStock);
         if (allProductsInStock) {
             orderRepo.save(order);
+            kafkaTemplate.send("notification", new OrderPlacedEvent(order.getOrderNumber()));
             return "Order placed successfully";
         } else {
             throw new IllegalArgumentException("Products are not in stock, please try again later!");
